@@ -7,7 +7,8 @@ import neurotik.nn.Layer;
 import neurotik.nn.Layers;
 import neurotik.tensor.MathHelper;
 import neurotik.nn.Model;
-import neurotik.data.NumDataSet;
+import neurotik.data.DataSet;
+import neurotik.encoding.TensorBatchEncoder;
 import tensor.Tensor;
 
 import java.util.ArrayList;
@@ -83,11 +84,9 @@ public class RNN extends Model{
         source.add(initVals);
         double[] resultArray=new double[initVals.length];
         this.resetMemoryStates();
-        NumDataSet ns = new NumDataSet(source);
         for (int i=0;i<samples;i++) {
             //clear all memories
-            ns=new NumDataSet(source);
-            Tensor [] inputs=ns.encode(null);
+            Tensor [] inputs= TensorBatchEncoder.encodeNumeric(new DataSet<>(source));
             for (Layer layer : layers.layers) {
                 inputs = layer.forward(inputs);
             }

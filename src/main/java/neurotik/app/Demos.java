@@ -2,9 +2,11 @@ package neurotik.app;
 
 import neurotik.nn.optim.AdamOptimizer;
 import neurotik.data.DataLoader;
+import neurotik.data.DataSet;
 import neurotik.encoding.Encoder;
 import neurotik.encoding.EncoderFactory;
-import neurotik.data.FileHandler;
+import neurotik.data.TextDataTransforms;
+import neurotik.data.TextFileReader;
 import neurotik.nn.models.GRU;
 import neurotik.nn.init.Initializer;
 import neurotik.nn.init.InitializerFactory;
@@ -12,11 +14,10 @@ import neurotik.nn.models.LSTM;
 import neurotik.nn.models.MLP;
 import neurotik.nn.Model;
 import neurotik.nn.ModelFactory;
-import neurotik.data.NumDataSet;
+import neurotik.data.NumericDataTransforms;
 import neurotik.nn.optim.Optimizer;
 import neurotik.nn.optim.OptimizerFactory;
 import neurotik.nn.models.RNN;
-import neurotik.data.StringDataSet;
 import tensor.Tensor;
 
 import java.util.*;
@@ -34,29 +35,29 @@ public class Demos {
     static HashSet<Tensor> params;
 
     static String alphabet;
-    static StringDataSet datas;
-    static StringDataSet inputs;
-    static StringDataSet outputs;
+    static DataSet<String> datas;
+    static DataSet<String> inputs;
+    static DataSet<String> outputs;
     static DataLoader<String> dl;
 
     static Encoder oneHotEnc;
     static Encoder vecEnc;
     static Optimizer opt;
     static Initializer init;
-    static NumDataSet ns;
-    static NumDataSet numinputs;
-    static NumDataSet numoutputs;
+    static DataSet<double[]> ns;
+    static DataSet<double[]> numinputs;
+    static DataSet<double[]> numoutputs;
     static DataLoader<double[]> numdl;
     static double [] vals;
     static List<double[]> sinvals;
-    static StringDataSet ds;
+    static DataSet<String> ds;
 
     public static void runRnnTextDemo(){
 
         initText();
-        datas=ds.setSequences(contextLength,false).sortDesc();
-        inputs=datas.getSubSeq(0,-1);
-        outputs=datas.getSubSeq(1,0);
+        datas=TextDataTransforms.sortByLengthDesc(TextDataTransforms.charWindows(ds, contextLength, false));
+        inputs=TextDataTransforms.sliceOffsets(datas, 0,-1);
+        outputs=TextDataTransforms.sliceOffsets(datas, 1,0);
         dl=new DataLoader<>(inputs,outputs);
         Model nn = ModelFactory.RNN(contextLength,embeddingSize, hiddenLayers,vecEnc.getVocab().size(), vecEnc,false,init);
         nn.train(dl.trainingSet(), batchSize, epochs, opt);
@@ -68,9 +69,9 @@ public class Demos {
     public static void runLSTMTextDemo(){
 
         initText();
-        datas=ds.setSequences(contextLength,false).sortDesc();
-        inputs=datas.getSubSeq(0,-1);
-        outputs=datas.getSubSeq(1,0);
+        datas=TextDataTransforms.sortByLengthDesc(TextDataTransforms.charWindows(ds, contextLength, false));
+        inputs=TextDataTransforms.sliceOffsets(datas, 0,-1);
+        outputs=TextDataTransforms.sliceOffsets(datas, 1,0);
         dl=new DataLoader<>(inputs,outputs);
         Model nn = ModelFactory.LSTM(contextLength,embeddingSize, hiddenLayers,vecEnc.getVocab().size(), vecEnc,false,init);
         nn.train(dl.trainingSet(), batchSize, epochs, opt);
@@ -81,8 +82,8 @@ public class Demos {
 
     public static void runRnnNumbersDemo(){
         initNumbers();
-        numinputs=ns.getSubSeq(0,-1);
-        numoutputs=ns.getSubSeq(1,0);
+        numinputs=NumericDataTransforms.sliceOffsets(ns, 0,-1);
+        numoutputs=NumericDataTransforms.sliceOffsets(ns, 1,0);
         numdl=new DataLoader<>(numinputs,numoutputs);
         Model nn = ModelFactory.RNN(contextLength,1, hiddenLayers,1, false,init);
         nn.train(numdl.trainingSet(), batchSize, epochs, opt);
@@ -94,8 +95,8 @@ public class Demos {
 
     public static void runLSTMNumbersDemo(){
         initNumbers();
-        numinputs=ns.getSubSeq(0,-1);
-        numoutputs=ns.getSubSeq(1,0);
+        numinputs=NumericDataTransforms.sliceOffsets(ns, 0,-1);
+        numoutputs=NumericDataTransforms.sliceOffsets(ns, 1,0);
         numdl=new DataLoader<>(numinputs,numoutputs);
         Model nn = ModelFactory.LSTM(contextLength,1, hiddenLayers,1, false,init);
         nn.train(numdl.trainingSet(), batchSize, epochs, opt);
@@ -107,8 +108,8 @@ public class Demos {
 
     public static void runGRUNumbersDemo(){
         initNumbers();
-        numinputs=ns.getSubSeq(0,-1);
-        numoutputs=ns.getSubSeq(1,0);
+        numinputs=NumericDataTransforms.sliceOffsets(ns, 0,-1);
+        numoutputs=NumericDataTransforms.sliceOffsets(ns, 1,0);
         numdl=new DataLoader<>(numinputs,numoutputs);
         Model nn = ModelFactory.GRU(contextLength,1, hiddenLayers,1, false,init);
         nn.train(numdl.trainingSet(), batchSize, epochs, opt);
@@ -121,9 +122,9 @@ public class Demos {
     public static void runGRUTextDemo(){
 
         initText();
-        datas=ds.setSequences(contextLength,false).sortDesc();
-        inputs=datas.getSubSeq(0,-1);
-        outputs=datas.getSubSeq(1,0);
+        datas=TextDataTransforms.sortByLengthDesc(TextDataTransforms.charWindows(ds, contextLength, false));
+        inputs=TextDataTransforms.sliceOffsets(datas, 0,-1);
+        outputs=TextDataTransforms.sliceOffsets(datas, 1,0);
         dl=new DataLoader<>(inputs,outputs);
         Model nn = ModelFactory.GRU(contextLength,embeddingSize, hiddenLayers,vecEnc.getVocab().size(), vecEnc,false,init);
         nn.train(dl.trainingSet(), batchSize, epochs, opt);
@@ -134,9 +135,9 @@ public class Demos {
 
     public static void runMLPTextDemo(){
         initText();
-        datas=ds.setSequences(contextLength,true);
-        inputs=datas.getSubSeq(0,-1);
-        outputs=datas.getSubSeq(-1);
+        datas=TextDataTransforms.charWindows(ds, contextLength,true);
+        inputs=TextDataTransforms.sliceOffsets(datas, 0,-1);
+        outputs=TextDataTransforms.tail(datas, -1);
         dl=new DataLoader<>(inputs,outputs);
         Model nn=ModelFactory.MLP(contextLength,embeddingSize, hiddenLayers,vecEnc.getVocab().size(), vecEnc,false,init);
         nn.train(dl.trainingSet(), batchSize, epochs, opt);
@@ -146,8 +147,8 @@ public class Demos {
 
     public static void runMLPNumbersDemo(){
         initNumbers();
-        numinputs=ns.getSubSeq(0,-1);
-        numoutputs=ns.getSubSeq(contextLength-1,0);
+        numinputs=NumericDataTransforms.sliceOffsets(ns, 0,-1);
+        numoutputs=NumericDataTransforms.sliceOffsets(ns, contextLength-1,0);
         numdl=new DataLoader<>(numinputs,numoutputs);
         Model nn = ModelFactory.MLP(contextLength,1, hiddenLayers,1, false,init);
         nn.train(numdl.trainingSet(), batchSize, epochs, opt);
@@ -173,11 +174,10 @@ public class Demos {
 
 
         params = new HashSet<>();
-        FileHandler fh = new FileHandler("data/names.txt");
-        List<String> set = fh.ReadFileLines();
+        List<String> set = new ArrayList<>(TextFileReader.readLines("data/names.txt").data());
         Collections.shuffle(set);
-        ds = new StringDataSet(set);
-        alphabet = "." + ds.uniqueCharacters();
+        ds = new DataSet<>(set);
+        alphabet = "." + TextDataTransforms.uniqueCharacters(ds);
 
 
         oneHotEnc = EncoderFactory.createOnehot(alphabet);
@@ -190,7 +190,7 @@ public class Demos {
         List<double[]> sinvals=new ArrayList<>();
         vals=sinWave(10000,0.1,0.2);
         sinvals.add(vals);
-        ns = new NumDataSet(sinvals).setSequences(contextLength,false);
+        ns = NumericDataTransforms.windows(new DataSet<>(sinvals), contextLength);
 
         opt = OptimizerFactory.AdamOptimizer(0.01);
         init=InitializerFactory.kaimingInit();

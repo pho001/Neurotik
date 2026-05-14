@@ -1,8 +1,11 @@
 package neurotik.nn;
 
 import neurotik.data.DataLoader;
+import neurotik.data.DataSet;
+import neurotik.data.TextDataTransforms;
 import neurotik.encoding.Encoder;
 import neurotik.encoding.EncoderFactory;
+import neurotik.encoding.TensorBatchEncoder;
 import neurotik.nn.init.Initializer;
 import neurotik.nn.optim.Optimizer;
 import tensor.CompileMode;
@@ -11,6 +14,7 @@ import tensor.Tensor;
 import tensor.TensorInternalAccess;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.OptionalDouble;
@@ -145,17 +149,20 @@ public abstract class Model {
         Tensor [] inputs=null;
         Tensor [] targets=null;
         if(encoder!=null){
-            if (batch.getMask()!=null){
-                this.setMask(batch.getMask());
-            }
+            DataLoader<String> textBatch = strings(batch).sortByInputs(Comparator.comparingInt(String::length).reversed());
+            DataSet<String> inputStrings = textBatch.getInputs();
+            DataSet<String> targetStrings = textBatch.getTargets();
+            this.setMask(TextDataTransforms.lengths(inputStrings));
 
-            inputs=batch.getInputs().padSortedSequences(".").encode(encoder);
-            targets = batch.getTargets().padSortedSequences(".").encode(EncoderFactory.createOnehot(encoder.getVocab()));
+            inputs = TensorBatchEncoder.encodeText(TextDataTransforms.padToMaxLength(inputStrings, "."), encoder);
+            targets = TensorBatchEncoder.encodeText(
+                    TextDataTransforms.padToMaxLength(targetStrings, "."),
+                    EncoderFactory.createOnehot(encoder.getVocab()));
 
         }
         else{
-            inputs=batch.getInputs().encode(null);
-            targets=batch.getTargets().encode(null);
+            inputs = TensorBatchEncoder.encodeNumeric(numbers(batch.getInputs()));
+            targets = TensorBatchEncoder.encodeNumeric(numbers(batch.getTargets()));
         }
         //---------- Forward pass-----------
         for (Layer layer:layers.layers){
@@ -272,5 +279,14 @@ public abstract class Model {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private static <T> DataLoader<String> strings(DataLoader<T> dataLoader) {
+        return (DataLoader<String>) dataLoader;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> DataSet<double[]> numbers(DataSet<T> dataSet) {
+        return (DataSet<double[]>) dataSet;
+    }
 
 }
