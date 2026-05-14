@@ -1,0 +1,8 @@
+.gradle/
+build/
+out/
+*.class
+
+# IntelliJ IDEA user-local files
+.idea/workspace.xml
+.idea/shelf/

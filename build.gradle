@@ -1,0 +1,42 @@
+plugins {
+    id 'application'
+    id 'java'
+}
+
+group = 'neurotik'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+    maven { url = uri('https://jitpack.io') }
+}
+
+dependencies {
+    implementation fileTree(dir: 'lib', include: ['*.jar'])
+    implementation 'com.github.pho001:Synaptik:v0.1.0-alpha.2'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+application {
+    mainClass = 'neurotik.app.Main'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['--add-modules', 'jdk.incubator.vector']
+}
+
+tasks.withType(JavaExec).configureEach {
+    jvmArgs '--add-modules=jdk.incubator.vector'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+tasks.withType(Test).configureEach {
+    jvmArgs '--add-modules=jdk.incubator.vector'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
