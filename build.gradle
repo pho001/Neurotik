@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.pho001:Synaptik:v0.1.0-alpha.2'
+    implementation 'com.github.pho001:Synaptik:73bf331806bc3371767b95e39887a32af5793ee2'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

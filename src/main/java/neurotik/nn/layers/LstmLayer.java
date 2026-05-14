@@ -3,7 +3,6 @@ package neurotik.nn.layers;
 import neurotik.nn.init.Initializer;
 import neurotik.nn.Layer;
 import neurotik.nn.MemoryState;
-import neurotik.nn.TensorTimeOps;
 import tensor.DataType;
 import tensor.Tensor;
 
@@ -100,7 +99,7 @@ public class LstmLayer extends Layer{
             cellState.get().setLabel("c("+step+")");
         }
 
-        out = TensorTimeOps.stackTime(steps);
+        out = Tensor.stack(0, steps.toArray(new Tensor[0]));
         return out;
     }
 

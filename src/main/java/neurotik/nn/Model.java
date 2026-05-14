@@ -10,7 +10,6 @@ import tensor.CompileMode;
 import tensor.DataType;
 import tensor.Tensor;
 import tensor.TensorInternalAccess;
-import tensor.loss.LossReduction;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -193,12 +192,10 @@ public abstract class Model {
     private Tensor classificationLoss(Tensor predictions, Tensor targets, Tensor mask) {
         if (predictions.getShape().length == 2) {
             Tensor target = targets.getShape().length == 2 ? targets.select(0, 0) : targets;
-            Tensor loss = predictions.crossEntropyLossFromIndices(target, 1, LossReduction.NONE);
             Tensor selectedMask = mask.getShape().length == 2 ? mask.select(0, 0) : mask;
-            return maskedMean(loss, selectedMask);
+            return predictions.crossEntropyLossFromIndices(target, 1, selectedMask);
         }
-        Tensor loss = predictions.crossEntropyLossFromIndices(targets, 2, LossReduction.NONE);
-        return maskedMean(loss, mask);
+        return predictions.crossEntropyLossFromIndices(targets, 2, mask);
     }
 
     private Tensor regressionLoss(Tensor predictions, Tensor targets, Tensor mask) {
