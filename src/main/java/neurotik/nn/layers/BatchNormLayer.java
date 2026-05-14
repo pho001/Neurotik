@@ -21,7 +21,7 @@ public class BatchNormLayer extends Layer {
     private Tensor beta;
     private Tensor runningMean;
     private Tensor runningVariance;
-    private Tensor[] out;
+    private Tensor out;
 
     public BatchNormLayer(int features) {
         this(features, 1, DEFAULT_EPSILON, DEFAULT_MOMENTUM);
@@ -56,11 +56,8 @@ public class BatchNormLayer extends Layer {
     }
 
     @Override
-    public Tensor[] forward(Tensor[] input) {
-        this.out = new Tensor[input.length];
-        for (int i = 0; i < input.length; i++) {
-            this.out[i] = normalize(input[i]);
-        }
+    public Tensor forward(Tensor input) {
+        this.out = normalize(input);
         return this.out;
     }
 

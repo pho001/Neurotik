@@ -9,7 +9,7 @@ import java.util.HashSet;
 public class FlattenLayer extends Layer{
 
     int factor;
-    Tensor [] out= null;
+    Tensor out= null;
 
     public FlattenLayer(int factor){
         this.factor=factor;
@@ -18,30 +18,19 @@ public class FlattenLayer extends Layer{
 
 
 
-    public Tensor[] forward(Tensor [] input){
-        if (input.length%factor!=0){
-            if (input.length==1){
-                return input;
-            }
-            throw new RuntimeException("Unable to reduce dimension.");
+    public Tensor forward(Tensor input){
+        int[] shape = input.getShape();
+        if (shape.length == 2) {
+            this.out = input.transpose();
+            return this.out;
         }
-        Tensor prev=null;
-        this.out= new Tensor[input.length/this.factor];
-        int depth=input.length;
-        int k=0;
-        for (int i=0;i<depth;i++){
-            if(i%this.factor==0){
-                for (int j=0;j<this.factor;j++){
-                    if (j==0){
-                        this.out[k]=input[j+i];
-                    }
-                    else {
-                        this.out[k]= Tensor.concat(1, this.out[k], input[j+i]);
-                    }
-                }
-                k++;
-            }
+        if (shape.length != 3) {
+            throw new IllegalArgumentException("FlattenLayer expects rank 2 or 3 input.");
         }
+        int time = shape[0];
+        int batch = shape[1];
+        int features = shape[2];
+        this.out = input.permute(1, 0, 2).reshape(batch, time * features);
         return this.out;
     }
 

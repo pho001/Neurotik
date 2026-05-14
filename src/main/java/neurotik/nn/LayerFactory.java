@@ -3,6 +3,7 @@ package neurotik.nn;
 import neurotik.nn.activation.Activation;
 import neurotik.nn.layers.ActivationLayer;
 import neurotik.nn.layers.BatchNormLayer;
+import neurotik.nn.layers.EmbeddingLayer;
 import neurotik.nn.layers.FlattenLayer;
 import neurotik.nn.layers.GRULayer;
 import neurotik.nn.init.Initializer;
@@ -38,6 +39,10 @@ public class LayerFactory {
 
     public static Layer BatchNormLayer(int features, int channelAxis, double epsilon, double momentum) {
         return new BatchNormLayer(features, channelAxis, epsilon, momentum);
+    }
+
+    public static Layer EmbeddingLayer(int vocabularySize, int embeddingSize) {
+        return new EmbeddingLayer(vocabularySize, embeddingSize);
     }
 
     public static Layer OneDirectionalRNN(int inputSize, int hiddenSize,boolean useBias,Initializer init) {

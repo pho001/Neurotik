@@ -3,13 +3,13 @@ package neurotik.nn.layers;
 import neurotik.nn.init.Initializer;
 import neurotik.nn.Layer;
 import neurotik.nn.MemoryState;
+import neurotik.nn.TensorTimeOps;
 import tensor.DataType;
 import tensor.Tensor;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.stream.IntStream;
 
 
 public class OneDirectionalRNNLayer extends Layer{
@@ -33,7 +33,7 @@ public class OneDirectionalRNNLayer extends Layer{
 
 
 
-    Tensor [] out;
+    Tensor out;
 
 
 
@@ -64,33 +64,24 @@ public class OneDirectionalRNNLayer extends Layer{
 
 
     @Override
-    public Tensor[] forward(Tensor [] input){
-        out =new Tensor[input.length];
-        int[] packedSizes =null;
-        if (mask!=null) {
-            packedSizes = getPackedBatchesSizes();
-        }
+    public Tensor forward(Tensor input){
+        int time = input.getDimensionAt(0);
+        int batch = input.getDimensionAt(1);
+        List<Tensor> steps = new ArrayList<>();
 
         //if hidden state wasn't initialized yet
         if (lastMemoryState.get()==null){
-            int rows = input[0].getDimensionAt(0);
-            lastMemoryState=new MemoryState(new Tensor(new double[rows * hiddenSize], new int[]{rows, hiddenSize}, List.of(), "h(-1)", DataType.FLOAT64));
+            lastMemoryState=new MemoryState(new Tensor(new double[batch * hiddenSize], new int[]{batch, hiddenSize}, List.of(), "h(-1)", DataType.FLOAT64));
         }
         //let's calculate for each time step
-        for (int step=0;step<input.length;step++){
-            input[step].setLabel("data("+step+")");
-            if (mask!=null) {
-                int[] indexes= IntStream.rangeClosed(0, packedSizes[step]-1).toArray();
-                Tensor indexTensor = new Tensor(indexes, new int[]{indexes.length}, List.of(), "packed indexes", DataType.INT32);
-                out[step] = rnnCell(input[step].gatherAxis(indexTensor, 0), lastMemoryState.get().gatherAxis(indexTensor, 0));
-            }
-            else {
-                out[step] = rnnCell(input[step], lastMemoryState.get());
-            }
+        for (int step=0;step<time;step++){
+            Tensor stepInput = input.select(0, step);
+            stepInput.setLabel("data("+step+")");
+            steps.add(rnnCell(stepInput, lastMemoryState.get()));
             lastMemoryState.get().setLabel("h("+step+")");
         }
 
-
+        out = TensorTimeOps.stackTime(steps);
         return out;
     }
 
@@ -159,18 +150,4 @@ public class OneDirectionalRNNLayer extends Layer{
         Wh.setLabel("Wh");
 
     }
-
-    private int[] getPackedBatchesSizes(){
-
-        int min=Arrays.stream(mask).min().orElseThrow(() -> new IllegalArgumentException("The array must not be null or empty"));
-        int max=Arrays.stream(mask).max().orElseThrow(() -> new IllegalArgumentException("The array must not be null or empty"));
-        int [] lengths=new int[max];
-        for (int i=0;i<max;i++){
-            final int f=i;
-            int count= (int) Arrays.stream(mask).filter(value->value >f).count();
-            lengths[i]=count;
-        }
-        return lengths;
-    }
-
 }

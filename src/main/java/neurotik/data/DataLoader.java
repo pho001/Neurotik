@@ -1,97 +1,82 @@
 package neurotik.data;
 
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 
-public class DataLoader<T> {
-    private final DataSet<T> inputs;
-    private final DataSet<T> targets;
+public class DataLoader<B extends Batch> implements Iterable<B> {
+    private final List<B> batches;
 
-    public double devRatio = 0.1;
-    public double testRatio = 0.1;
-    public double trainRatio = 0.8;
+    public DataLoader(List<B> batches) {
+        this.batches = new ArrayList<>(batches);
+    }
 
-    public DataLoader(DataSet<T> inputs, DataSet<T> targets) {
-        if (inputs.size() != targets.size()) {
-            throw new IllegalArgumentException("Inputs and targets must have the same size.");
+    public static <X, Y> Builder<X, Y> from(SupervisedDataset<X, Y> dataset) {
+        return new Builder<>(dataset);
+    }
+
+    public int size() {
+        return batches.size();
+    }
+
+    public B getBatch(int index) {
+        return batches.get(index);
+    }
+
+    public List<B> batches() {
+        return Collections.unmodifiableList(batches);
+    }
+
+    @Override
+    public Iterator<B> iterator() {
+        return batches().iterator();
+    }
+
+    public DataLoader<B> slice(int fromInclusive, int toExclusive) {
+        if (fromInclusive < 0 || toExclusive > batches.size() || fromInclusive > toExclusive) {
+            throw new IndexOutOfBoundsException("Invalid dataloader slice.");
         }
-        this.inputs = inputs;
-        this.targets = targets;
+        return new DataLoader<>(batches.subList(fromInclusive, toExclusive));
     }
 
-    public static <T> DataLoader<T> supervised(DataSet<T> inputs, DataSet<T> targets) {
-        return new DataLoader<>(inputs, targets);
-    }
+    public static final class Builder<X, Y> {
+        private final SupervisedDataset<X, Y> dataset;
+        private int batchSize = 32;
+        private boolean shuffle = false;
+        private Random random = new Random();
 
-    public DataLoader<T> trainingSet() {
-        return getLines(0, (int) Math.round(inputs.size() * trainRatio));
-    }
-
-    public DataLoader<T> testSetData() {
-        int bottomIndex = (int) Math.round(inputs.size() * trainRatio);
-        int upperIndex = (int) Math.round(inputs.size() * (trainRatio + testRatio));
-        return getLines(bottomIndex, upperIndex);
-    }
-
-    public DataLoader<T> devSetData() {
-        int bottomIndex = (int) Math.round(inputs.size() * (trainRatio + testRatio));
-        return getLines(bottomIndex, inputs.size());
-    }
-
-    public DataLoader<T> getBatch(int batchSize, int startIndex) {
-        return getLines(startIndex, Math.min(startIndex + batchSize, inputs.size()));
-    }
-
-    public DataLoader<T> getLines(int bottomIndex, int upperIndex) {
-        return new DataLoader<>(inputs.slice(bottomIndex, upperIndex), targets.slice(bottomIndex, upperIndex));
-    }
-
-    public DataLoader<T> sortByInputs(Comparator<T> comparator) {
-        List<Integer> indexes = new ArrayList<>();
-        for (int i = 0; i < inputs.size(); i++) {
-            indexes.add(i);
+        private Builder(SupervisedDataset<X, Y> dataset) {
+            this.dataset = dataset;
         }
-        indexes.sort((left, right) -> comparator.compare(inputs.get(left), inputs.get(right)));
 
-        List<T> sortedInputs = new ArrayList<>();
-        List<T> sortedTargets = new ArrayList<>();
-        for (int index : indexes) {
-            sortedInputs.add(inputs.get(index));
-            sortedTargets.add(targets.get(index));
+        public Builder<X, Y> batchSize(int batchSize) {
+            if (batchSize <= 0) {
+                throw new IllegalArgumentException("Batch size must be positive.");
+            }
+            this.batchSize = batchSize;
+            return this;
         }
-        return new DataLoader<>(new DataSet<>(sortedInputs), new DataSet<>(sortedTargets));
-    }
 
-    public int getSetSize() {
-        return inputs.size();
-    }
-
-    public DataSet<T> getInputs() {
-        return inputs;
-    }
-
-    public DataSet<T> getTargets() {
-        return targets;
-    }
-
-    public int[] getMask() {
-        if (inputs.size() == 0 || !(inputs.get(0) instanceof String)) {
-            return null;
+        public Builder<X, Y> shuffle(boolean shuffle) {
+            this.shuffle = shuffle;
+            return this;
         }
-        return TextDataTransforms.lengths(strings(inputs));
-    }
 
-    public int[] getPackedBatchesSizes() {
-        int[] mask = getMask();
-        if (mask == null) {
-            return new int[0];
+        public Builder<X, Y> random(Random random) {
+            this.random = random;
+            return this;
         }
-        return TextDataTransforms.packedBatchSizes(mask);
-    }
 
-    @SuppressWarnings("unchecked")
-    private static DataSet<String> strings(DataSet<?> dataSet) {
-        return (DataSet<String>) dataSet;
+        public <B extends Batch> DataLoader<B> collator(Collator<Sample<X, Y>, B> collator) {
+            SupervisedDataset<X, Y> source = shuffle ? dataset.shuffle(random) : dataset;
+            List<B> batches = new ArrayList<>();
+            for (int start = 0; start < source.size(); start += batchSize) {
+                int end = Math.min(start + batchSize, source.size());
+                batches.add(collator.collate(source.slice(start, end).samples()));
+            }
+            return new DataLoader<>(batches);
+        }
     }
 }

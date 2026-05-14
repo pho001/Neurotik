@@ -11,7 +11,7 @@ public class ActivationLayer extends Layer
 {
 
     Activation activation;
-    Tensor [] out=null;
+    Tensor out=null;
 
     public ActivationLayer(Activation activation){
         this.activation=activation;
@@ -19,12 +19,8 @@ public class ActivationLayer extends Layer
 
 
     @Override
-    public Tensor[] forward(Tensor[] input) {
-        this.out=new Tensor [input.length];
-        for (int i=0;i<input.length;i++)
-        {
-            this.out[i]=activation.forward(input[i]);
-        }
+    public Tensor forward(Tensor input) {
+        this.out=activation.forward(input);
         return this.out;
     }
 

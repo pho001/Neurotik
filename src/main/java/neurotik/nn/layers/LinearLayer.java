@@ -14,7 +14,7 @@ public class LinearLayer extends Layer{
 
     Tensor weights=null;
     Tensor bias=null;
-    Tensor [] out=null;
+    Tensor out=null;
 
     int inputs;
     int outputs;
@@ -39,23 +39,29 @@ public class LinearLayer extends Layer{
     }
 
     @Override
-    public Tensor[] forward(Tensor[] input) {
-        this.out=new Tensor[input.length];
-
-        for (int i=0;i<input.length;i++) {
-            out[i]=linear(input[i]);
-        }
-        return out;
+    public Tensor forward(Tensor input) {
+        this.out = linear(input);
+        return this.out;
     }
     
     public Tensor linear(Tensor input) {
-        Tensor out=null;
-        if (this.useBias) {
-            out = input.matmul(this.weights).add(this.bias);
-        } else {
-            out = input.matmul(this.weights);
+        int[] shape = input.getShape();
+        Tensor projected;
+        if (shape.length == 2) {
+            projected = input.matmul(this.weights);
+            return useBias ? projected.add(this.bias) : projected;
         }
-        return out;
+        if (shape.length == 3) {
+            int time = shape[0];
+            int batch = shape[1];
+            int features = shape[2];
+            projected = input.reshape(time * batch, features).matmul(this.weights);
+            if (useBias) {
+                projected = projected.add(this.bias);
+            }
+            return projected.reshape(time, batch, this.outputs);
+        }
+        throw new IllegalArgumentException("LinearLayer expects rank 2 or 3 input, got rank " + shape.length + ".");
     }
 
     @Override
