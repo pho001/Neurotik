@@ -1,5 +1,11 @@
 package neurotik.nn;
 
+import backend.runtime.ExecutionMode;
+import config.compile.CompileConfig;
+import config.runtime.RuntimeConfig;
+import graph.CompiledGraph;
+import graph.execution.PreparedExecution;
+import graph.execution.PublicationPolicy;
 import neurotik.data.DataLoader;
 import neurotik.data.SequenceBatch;
 import neurotik.data.TextVocabulary;
@@ -110,6 +116,37 @@ public abstract class Model {
             return classificationLoss(predictions, batch.targets(), batch.mask());
         }
         return regressionLoss(predictions, batch.targets(), batch.mask());
+    }
+
+    public LossTrace traceLoss(SequenceBatch batch) {
+        return traceLoss(batch, CompileConfig.training(), RuntimeConfig.trainingDefaults(), PublicationPolicy.OUTPUT_AND_GRADIENTS);
+    }
+
+    public LossTrace traceLoss(SequenceBatch batch, RuntimeConfig runtimeConfig, PublicationPolicy publicationPolicy) {
+        return traceLoss(batch, CompileConfig.training(), runtimeConfig, publicationPolicy);
+    }
+
+    public LossTrace traceLoss(
+            SequenceBatch batch,
+            CompileConfig compileConfig,
+            RuntimeConfig runtimeConfig,
+            PublicationPolicy publicationPolicy) {
+        this.setLearningMode(true);
+        this.resetMemoryStates();
+        Tensor loss = getLoss(batch);
+        for (Tensor parameter : parameters()) {
+            TensorInternalAccess.clearGradient(parameter);
+        }
+        CompiledGraph compiled = CompiledGraph.compile(loss, compileConfig, CompileMode.TRAINING);
+        PreparedExecution prepared = compiled.prepare(runtimeConfig);
+        return new LossTrace(
+                compiled.compileTrace(),
+                prepared.prepareTrace(),
+                prepared.executeTraced(ExecutionMode.FORWARD_BACKWARD, publicationPolicy));
+    }
+
+    public void printLossTrace(SequenceBatch batch, int hotStepLimit) {
+        System.out.print(traceLoss(batch).summary(hotStepLimit));
     }
 
     protected Tensor forward(Tensor inputs) {

@@ -9,6 +9,7 @@ import neurotik.data.SupervisedDataset;
 import neurotik.data.TextDatasets;
 import neurotik.data.TextSequenceCollator;
 import neurotik.data.TextVocabulary;
+import neurotik.nn.LossTrace;
 import neurotik.nn.Model;
 import neurotik.nn.ModelFactory;
 import neurotik.nn.init.InitializerFactory;
@@ -96,6 +97,24 @@ class DataPipelineSmokeTest {
         Model numericModel = ModelFactory.MLP(4, 1, new int[]{4}, 1, false, InitializerFactory.kaimingInit());
         Tensor numericLoss = numericModel.getLoss(numericBatch).compute(CompileMode.TRAINING);
         assertTrue(Double.isFinite(numericLoss.scalarAsDouble()));
+    }
+
+    @Test
+    void modelTraceLossCapturesCompilePrepareAndRunDiagnostics() {
+        SequenceBatch numericBatch = DataLoader
+                .from(NumericDatasets.fixedPrediction(new DataSet<>(List.of(new double[]{1.0, 2.0, 3.0, 4.0})), 3))
+                .batchSize(1)
+                .collator(new NumericSequenceCollator())
+                .getBatch(0);
+        Model model = ModelFactory.MLP(3, 1, new int[]{2}, 1, false, InitializerFactory.kaimingInit());
+
+        LossTrace trace = model.traceLoss(numericBatch);
+
+        assertTrue(trace.compile().totalNodeCount() > 0);
+        assertTrue(trace.prepare().forwardStepCount() > 0);
+        assertTrue(trace.run().durationNs() >= 0L);
+        assertTrue(!trace.run().steps().isEmpty());
+        assertTrue(trace.summary(3).contains("Hot steps:"));
     }
 
     @Test
