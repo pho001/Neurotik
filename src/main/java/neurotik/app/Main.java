@@ -2,7 +2,7 @@ package neurotik.app;
 
 import neurotik.encoding.Encoder;
 import neurotik.tensor.MathHelper;
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
 
 
 import java.util.*;
@@ -26,10 +26,16 @@ public class Main {
 
     public static void update(double descent, HashSet<Tensor> params) {
         for (Tensor p : params) {
-            for (int i = 0; i < p.rows; i++)
-                for (int j = 0; j < p.cols; j++) {
-                    p.data[i][j] += -descent * p.gradients[i][j];
-                }
+            Tensor gradient = p.getGradient();
+            if (gradient == null) {
+                continue;
+            }
+            double[] data = p.toDoubleArrayCopy();
+            double[] grad = gradient.toDoubleArrayCopy();
+            for (int i = 0; i < data.length; i++) {
+                data[i] += -descent * grad[i];
+            }
+            p.setData(data);
         }
     }
 

@@ -2,12 +2,13 @@ package neurotik.nn.layers;
 
 import neurotik.nn.init.Initializer;
 import neurotik.nn.Layer;
-import neurotik.tensor.MathHelper;
 import neurotik.nn.MemoryState;
-import neurotik.tensor.Tensor;
+import tensor.DataType;
+import tensor.Tensor;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.stream.IntStream;
 
 public class GRULayer extends Layer{
@@ -41,7 +42,8 @@ public class GRULayer extends Layer{
         this.step=0;
 
         if (this.useBias==true) {
-            this.bias_h = new Tensor(1, hiddenSize, new HashSet<>(), "Bias_h").zeros();
+            this.bias_h = new Tensor(new double[hiddenSize], new int[]{1, hiddenSize}, List.of(), "Bias_h", DataType.FLOAT64)
+                    .trainableParameter();
         }
 
         this.Wu=init.init(inputSize+hiddenSize,hiddenSize);
@@ -69,19 +71,21 @@ public class GRULayer extends Layer{
 
         //if hidden state wasn't initialized yet
         if (lastMemoryState.get()==null){
-            lastMemoryState=new MemoryState(new Tensor(input[0].rows,hiddenSize,new HashSet<>(),"h(-1)"));
+            int rows = input[0].getDimensionAt(0);
+            lastMemoryState=new MemoryState(new Tensor(new double[rows * hiddenSize], new int[]{rows, hiddenSize}, List.of(), "h(-1)", DataType.FLOAT64));
         }
         //let's calculate for each time step
         for (int step=0;step<input.length;step++){
-            input[step].label="data("+step+")";
+            input[step].setLabel("data("+step+")");
             if (mask!=null) {
                 int[] indexes= IntStream.rangeClosed(0, packedSizes[step]-1).toArray();
-                out[step] = gruCell(input[step].mapVec(indexes), lastMemoryState.get().mapVec(indexes));
+                Tensor indexTensor = new Tensor(indexes, new int[]{indexes.length}, List.of(), "packed indexes", DataType.INT32);
+                out[step] = gruCell(input[step].gatherAxis(indexTensor, 0), lastMemoryState.get().gatherAxis(indexTensor, 0));
             }
             else {
                 out[step] = gruCell(input[step], lastMemoryState.get());
             }
-            lastMemoryState.get().label="h("+step+")";
+            lastMemoryState.get().setLabel("h("+step+")");
         }
 
 
@@ -95,22 +99,22 @@ public class GRULayer extends Layer{
 
 
 
-        Tensor z= input.concatRight(hprev);
+        Tensor z= Tensor.concat(1, input, hprev);
 
         if (useBias) {
-            updateGate=z.mul(Wu).addb(bias_h).sigmoid();
-            resetGate=z.mul(Wr).addb(bias_h).sigmoid();
-            candidateHidState=input.concatRight(resetGate.hadamard(hprev)).mul(Wh).addb(bias_h).tanh();
+            updateGate=z.matmul(Wu).add(bias_h).sigmoid();
+            resetGate=z.matmul(Wr).add(bias_h).sigmoid();
+            candidateHidState=Tensor.concat(1, input, resetGate.mul(hprev)).matmul(Wh).add(bias_h).tanh();
         }
         else {
-            updateGate=z.mul(Wu).sigmoid();
-            resetGate=z.mul(Wr).sigmoid();
-            candidateHidState=input.concatRight(resetGate.hadamard(hprev)).mul(Wh).tanh();
+            updateGate=z.matmul(Wu).sigmoid();
+            resetGate=z.matmul(Wr).sigmoid();
+            candidateHidState=Tensor.concat(1, input, resetGate.mul(hprev)).matmul(Wh).tanh();
         }
 
 
-        Tensor ones=new Tensor(MathHelper.ones(updateGate.rows,updateGate.cols),new HashSet<>(),"ones");
-        Tensor hidden=ones.sub(updateGate).hadamard(hprev).add(updateGate.hadamard(candidateHidState));
+        Tensor ones=Tensor.onesLike(updateGate);
+        Tensor hidden=ones.sub(updateGate).mul(hprev).add(updateGate.mul(candidateHidState));
         lastMemoryState= new MemoryState(hidden);
         return hidden;
     }
@@ -147,11 +151,11 @@ public class GRULayer extends Layer{
     public void initParameters(Initializer init) {
 
         Wh=init.init(inputSize+hiddenSize,hiddenSize);
-        Wh.label="Wh";
+        Wh.setLabel("Wh");
         Wu=init.init(inputSize+hiddenSize,hiddenSize);
-        Wu.label="Wu";
+        Wu.setLabel("Wu");
         Wr=init.init(inputSize+hiddenSize,hiddenSize);
-        Wr.label="Wr";
+        Wr.setLabel("Wr");
     }
 
     private int[] getPackedBatchesSizes(){

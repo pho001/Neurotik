@@ -2,9 +2,12 @@ package neurotik.nn.layers;
 
 import neurotik.nn.init.Initializer;
 import neurotik.nn.Layer;
-import neurotik.tensor.Tensor;
+import tensor.DataType;
+import tensor.Tensor;
+
 
 import java.util.HashSet;
+import java.util.List;
 
 public class LinearLayer extends Layer{
     boolean useBias=true;
@@ -30,9 +33,9 @@ public class LinearLayer extends Layer{
         this.weights=init.init(features_in,features_out);
 
         //this.weights=new Tensor(this.rows,this.cols, new HashSet<>(), "Weights").randTensor().muleach(1/(Math.pow(this.rows,2)));
-        this.weights.label="Weights";
+        this.weights.setLabel("Weights");
         if (this.useBias==true)
-            this.bias= new Tensor(1, cols, new HashSet<>(), "Bias").zeros();
+            this.bias= new Tensor(new double[cols], new int[]{1, cols}, List.of(), "Bias", DataType.FLOAT64).trainableParameter();
     }
 
     @Override
@@ -48,9 +51,9 @@ public class LinearLayer extends Layer{
     public Tensor linear(Tensor input) {
         Tensor out=null;
         if (this.useBias) {
-            out = input.mul(this.weights).addb(this.bias);
+            out = input.matmul(this.weights).add(this.bias);
         } else {
-            out = input.mul(this.weights);
+            out = input.matmul(this.weights);
         }
         return out;
     }
@@ -67,6 +70,6 @@ public class LinearLayer extends Layer{
     @Override
     public void initParameters(Initializer init) {
         this.weights=init.init(inputs,outputs);
-        this.weights.label="Weights";
+        this.weights.setLabel("Weights");
     }
 }

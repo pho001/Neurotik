@@ -3,11 +3,12 @@ package neurotik.nn.layers;
 import neurotik.nn.init.Initializer;
 import neurotik.nn.Layer;
 import neurotik.nn.MemoryState;
-import neurotik.tensor.Tensor;
+import tensor.DataType;
+import tensor.Tensor;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.stream.Collectors;
+import java.util.List;
 import java.util.stream.IntStream;
 
 
@@ -40,12 +41,13 @@ public class OneDirectionalRNNLayer extends Layer{
         this.useBias=useBias;
         this.step=0;
         this.Whh=init.init(hiddenSize,hiddenSize);
-        Whh.label="Whh";
+        Whh.setLabel("Whh");
         this.Wx=init.init(inputSize,hiddenSize);
-        Wx.label="Wx";
+        Wx.setLabel("Wx");
 
         if (this.useBias==true) {
-            this.bias_h = new Tensor(1, hiddenSize, new HashSet<>(), "Bias_h").zeros();
+            this.bias_h = new Tensor(new double[hiddenSize], new int[]{1, hiddenSize}, List.of(), "Bias_h", DataType.FLOAT64)
+                    .trainableParameter();
         }
 
         this.Wh=init.init(inputSize+hiddenSize,hiddenSize);
@@ -71,19 +73,21 @@ public class OneDirectionalRNNLayer extends Layer{
 
         //if hidden state wasn't initialized yet
         if (lastMemoryState.get()==null){
-            lastMemoryState=new MemoryState(new Tensor(input[0].rows,hiddenSize,new HashSet<>(),"h(-1)"));
+            int rows = input[0].getDimensionAt(0);
+            lastMemoryState=new MemoryState(new Tensor(new double[rows * hiddenSize], new int[]{rows, hiddenSize}, List.of(), "h(-1)", DataType.FLOAT64));
         }
         //let's calculate for each time step
         for (int step=0;step<input.length;step++){
-            input[step].label="data("+step+")";
+            input[step].setLabel("data("+step+")");
             if (mask!=null) {
                 int[] indexes= IntStream.rangeClosed(0, packedSizes[step]-1).toArray();
-                out[step] = rnnCell(input[step].mapVec(indexes), lastMemoryState.get().mapVec(indexes));
+                Tensor indexTensor = new Tensor(indexes, new int[]{indexes.length}, List.of(), "packed indexes", DataType.INT32);
+                out[step] = rnnCell(input[step].gatherAxis(indexTensor, 0), lastMemoryState.get().gatherAxis(indexTensor, 0));
             }
             else {
                 out[step] = rnnCell(input[step], lastMemoryState.get());
             }
-            lastMemoryState.get().label="h("+step+")";
+            lastMemoryState.get().setLabel("h("+step+")");
         }
 
 
@@ -94,12 +98,12 @@ public class OneDirectionalRNNLayer extends Layer{
         Tensor hidden=null;
 
 
-        Tensor z= input.concatRight(hprev);
+        Tensor z= Tensor.concat(1, input, hprev);
 
         if (useBias)
-            hidden=z.mul(Wh).addb(bias_h).tanh();
+            hidden=z.matmul(Wh).add(bias_h).tanh();
         else
-            hidden=z.mul(Wh).tanh();
+            hidden=z.matmul(Wh).tanh();
 
 
         /*
@@ -152,7 +156,7 @@ public class OneDirectionalRNNLayer extends Layer{
         Wx.label="Wx";
         */
         Wh=init.init(inputSize+hiddenSize,hiddenSize);
-        Wh.label="Wh";
+        Wh.setLabel("Wh");
 
     }
 

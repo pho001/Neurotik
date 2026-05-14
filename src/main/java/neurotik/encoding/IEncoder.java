@@ -1,6 +1,6 @@
 package neurotik.encoding;
 
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
 
 import java.util.HashSet;
 import java.util.List;

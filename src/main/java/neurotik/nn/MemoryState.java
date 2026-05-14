@@ -1,8 +1,9 @@
 package neurotik.nn;
 
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
+import tensor.DataType;
 
-import java.util.HashSet;
+import java.util.List;
 
 public class MemoryState {
     Tensor state;
@@ -20,7 +21,7 @@ public class MemoryState {
     }
 
     public void init(int rows, int cols,String label){
-        state=new Tensor(rows,cols,new HashSet<>(),label);
+        state= new Tensor(new double[rows * cols], new int[]{rows, cols}, List.of(), label, DataType.FLOAT64);
     }
 
     public Tensor get(){

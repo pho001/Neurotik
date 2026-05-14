@@ -1,11 +1,11 @@
 package neurotik.data;
 
 import neurotik.encoding.Encoder;
-import neurotik.tensor.Tensor;
+import tensor.DataType;
+import tensor.Tensor;
 
 import java.util.ArrayList;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -78,7 +78,7 @@ public class NumDataSet extends DataSet<double[]>{
                     slice[j][0]=darray[i];
                     j++;
                 }
-                out[i]=new Tensor(slice,new HashSet<>(),"data");
+                out[i]= new Tensor(slice, List.of(), "data", DataType.FLOAT64);
             }
 
             return out;

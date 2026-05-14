@@ -1,8 +1,8 @@
 package neurotik.tensor;
 
 import neurotik.encoding.IEncoder;
+import tensor.Tensor;
 
-import java.util.HashSet;
 import java.util.List;
 
 
@@ -87,7 +87,7 @@ public class DataCube {
                     }
                     else {
                         //this.out[k]=this.out[k].join(input[j], Tensor.Join.RIGHT);
-                        out[k]=out[k].join(dataCube[j+i], Tensor.Join.RIGHT);
+                        out[k]=Tensor.concat(1, out[k], dataCube[j+i]);
 
                     }
                 }

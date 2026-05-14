@@ -300,7 +300,7 @@ public class MathHelper {
     }
 
 
-    public static double[][] normalize(double[][] data, Tensor.Dimension dim){
+    public static double[][] normalize(double[][] data, Dimension dim){
         int rows=data.length;
         int cols=data[0].length;
         double [][] out=new double[rows][cols];
@@ -310,7 +310,7 @@ public class MathHelper {
 
         switch (dim){
             case BYCOLS :
-                mean=mean(data, Tensor.Dimension.BYCOLS);
+                mean=mean(data, Dimension.BYCOLS);
                 variance=variance(data,mean);
 
                 for (int c=0;c<cols;c++) {
@@ -321,7 +321,7 @@ public class MathHelper {
                 }
                 break;
             case BYROWS:
-                mean=mean(data, Tensor.Dimension.BYROWS);
+                mean=mean(data, Dimension.BYROWS);
                 variance=variance(data,mean);
 
                 for (int r=0;r<rows;r++) {
@@ -340,7 +340,7 @@ public class MathHelper {
         return out;
     }
 
-    public static double[][] mean(double[][] data, Tensor.Dimension dim){
+    public static double[][] mean(double[][] data, Dimension dim){
 
         int count=0;
         int rows= data.length;
@@ -522,7 +522,7 @@ public class MathHelper {
         return out;
     }
 
-    public static double[][] sum(double [][] data, Tensor.Dimension dim) {
+    public static double[][] sum(double [][] data, Dimension dim) {
         int rows=data.length;
         int cols=data[0].length;
         double sum[][]=null;

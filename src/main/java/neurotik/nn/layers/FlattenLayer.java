@@ -2,7 +2,7 @@ package neurotik.nn.layers;
 
 import neurotik.nn.init.Initializer;
 import neurotik.nn.Layer;
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
 
 import java.util.HashSet;
 
@@ -36,7 +36,7 @@ public class FlattenLayer extends Layer{
                         this.out[k]=input[j+i];
                     }
                     else {
-                        this.out[k]=this.out[k].concatRight(input[j+i]);
+                        this.out[k]= Tensor.concat(1, this.out[k], input[j+i]);
                     }
                 }
                 k++;

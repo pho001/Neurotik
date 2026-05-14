@@ -1,7 +1,7 @@
 package neurotik.data;
 
 import neurotik.encoding.Encoder;
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
 
 import java.util.*;
 

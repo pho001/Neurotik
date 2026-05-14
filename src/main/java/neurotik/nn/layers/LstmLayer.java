@@ -3,10 +3,12 @@ package neurotik.nn.layers;
 import neurotik.nn.init.Initializer;
 import neurotik.nn.Layer;
 import neurotik.nn.MemoryState;
-import neurotik.tensor.Tensor;
+import tensor.DataType;
+import tensor.Tensor;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.stream.IntStream;
 
 public class LstmLayer extends Layer{
@@ -49,13 +51,13 @@ public class LstmLayer extends Layer{
         this.step=0;
 
         this.Wf=init.init(hiddenSize+inputSize,hiddenSize);
-        Wf.label="Wf";
+        Wf.setLabel("Wf");
         this.Wi=init.init(hiddenSize+inputSize,hiddenSize);
-        Wi.label="Wi";
+        Wi.setLabel("Wi");
         this.Wo=init.init(hiddenSize+inputSize,hiddenSize);
-        Wo.label="Wo";
+        Wo.setLabel("Wo");
         this.Wc=init.init(hiddenSize+inputSize,hiddenSize);
-        Wc.label="Wc";
+        Wc.setLabel("Wc");
 
         this.hiddenSize=hiddenSize;
         this.inputSize=inputSize;
@@ -63,10 +65,10 @@ public class LstmLayer extends Layer{
         cellState=new MemoryState(null);
 
         if (this.useBias==true) {
-            this.Bi = new Tensor(1, hiddenSize, new HashSet<>(), "Bias_i").zeros();
-            this.Bf = new Tensor(1, hiddenSize, new HashSet<>(), "Bias_f").zeros();
-            this.Bo = new Tensor(1, hiddenSize, new HashSet<>(), "Bias_o").zeros();
-            this.Bc = new Tensor(1, hiddenSize, new HashSet<>(), "Bias_c").zeros();
+            this.Bi = new Tensor(new double[hiddenSize], new int[]{1, hiddenSize}, List.of(), "Bias_i", DataType.FLOAT64).trainableParameter();
+            this.Bf = new Tensor(new double[hiddenSize], new int[]{1, hiddenSize}, List.of(), "Bias_f", DataType.FLOAT64).trainableParameter();
+            this.Bo = new Tensor(new double[hiddenSize], new int[]{1, hiddenSize}, List.of(), "Bias_o", DataType.FLOAT64).trainableParameter();
+            this.Bc = new Tensor(new double[hiddenSize], new int[]{1, hiddenSize}, List.of(), "Bias_c", DataType.FLOAT64).trainableParameter();
         }
 
     }
@@ -82,10 +84,12 @@ public class LstmLayer extends Layer{
         }
 
         if (hiddenState.get()==null) {
-            hiddenState= new MemoryState(new Tensor(input[0].rows,hiddenSize,new HashSet<>(),"hidden state"));
+            int rows = input[0].getDimensionAt(0);
+            hiddenState= new MemoryState(new Tensor(new double[rows * hiddenSize], new int[]{rows, hiddenSize}, List.of(), "hidden state", DataType.FLOAT64));
         }
         if (cellState.get()==null){
-            cellState=new MemoryState(new Tensor(input[0].rows,hiddenSize,new HashSet<>(),"cell state"));
+            int rows = input[0].getDimensionAt(0);
+            cellState=new MemoryState(new Tensor(new double[rows * hiddenSize], new int[]{rows, hiddenSize}, List.of(), "cell state", DataType.FLOAT64));
         }
 
 
@@ -93,16 +97,20 @@ public class LstmLayer extends Layer{
 
         //let's calculate for each time step
         for (int step=0;step<input.length;step++){
-            input[step].label="data("+step+")";
+            input[step].setLabel("data("+step+")");
             if (mask!=null) {
                 int[] indexes= IntStream.rangeClosed(0, packedSizes[step]-1).toArray();
-                out[step] = lstmCell(input[step].mapVec(indexes), hiddenState.get().mapVec(indexes),cellState.get().mapVec(indexes));
+                Tensor indexTensor = new Tensor(indexes, new int[]{indexes.length}, List.of(), "packed indexes", DataType.INT32);
+                out[step] = lstmCell(
+                        input[step].gatherAxis(indexTensor, 0),
+                        hiddenState.get().gatherAxis(indexTensor, 0),
+                        cellState.get().gatherAxis(indexTensor, 0));
             }
             else {
                 out[step] = lstmCell(input[step], hiddenState.get(),cellState.get());
             }
-            hiddenState.get().label="h("+step+")";
-            cellState.get().label="c("+step+")";
+            hiddenState.get().setLabel("h("+step+")");
+            cellState.get().setLabel("c("+step+")");
         }
 
         return out;
@@ -113,25 +121,25 @@ public class LstmLayer extends Layer{
         Tensor inputGate=null;
         Tensor outputGate=null;
         Tensor candidateCellState=null;
-        Tensor z=input.concatRight(hiddenState);
+        Tensor z=Tensor.concat(1, input, hiddenState);
 
         if (useBias){
-            forgetGate=z.mul(Wf).addb(Bf).sigmoid();
-            inputGate=z.mul(Wi).addb(Bi).sigmoid();
-            outputGate=z.mul(Wo).addb(Bo).sigmoid();
-            candidateCellState=z.mul(Wc).addb(Bc).tanh();
+            forgetGate=z.matmul(Wf).add(Bf).sigmoid();
+            inputGate=z.matmul(Wi).add(Bi).sigmoid();
+            outputGate=z.matmul(Wo).add(Bo).sigmoid();
+            candidateCellState=z.matmul(Wc).add(Bc).tanh();
 
         }
 
         else {
-            forgetGate=z.mul(Wf).sigmoid();
-            inputGate=z.mul(Wi).sigmoid();
-            outputGate=z.mul(Wo).sigmoid();
-            candidateCellState=z.mul(Wc).tanh();
+            forgetGate=z.matmul(Wf).sigmoid();
+            inputGate=z.matmul(Wi).sigmoid();
+            outputGate=z.matmul(Wo).sigmoid();
+            candidateCellState=z.matmul(Wc).tanh();
         }
 
-        Tensor cellS=forgetGate.hadamard(cellState).add(inputGate.hadamard(candidateCellState));
-        Tensor hiddenS=outputGate.hadamard(cellS.tanh());
+        Tensor cellS=forgetGate.mul(cellState).add(inputGate.mul(candidateCellState));
+        Tensor hiddenS=outputGate.mul(cellS.tanh());
 
         this.cellState=new MemoryState(cellS);
         this.hiddenState=new MemoryState(hiddenS);

@@ -1,10 +1,12 @@
 package neurotik.encoding;
 
-import neurotik.tensor.Tensor;
+import tensor.DataType;
+import tensor.Tensor;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 
 
 public class VecEmbedding extends Encoder{
@@ -23,7 +25,13 @@ public class VecEmbedding extends Encoder{
             lookup.add(charSet.charAt(i));
 
         }
-        EMB=new Tensor(lookup.size(),vecSize, new HashSet<>(),"VecEmb").randTensor();
+        Random random = new Random();
+        double[] embeddingData = new double[lookup.size() * vecSize];
+        for (int i = 0; i < embeddingData.length; i++) {
+            embeddingData[i] = random.nextGaussian();
+        }
+        EMB = new Tensor(embeddingData, new int[]{lookup.size(), vecSize}, List.of(), "VecEmb", DataType.FLOAT64)
+                .trainableParameter();
 
         this.vecSize=vecSize;
         this.encodedTokenSize=vecSize;
@@ -40,7 +48,8 @@ public class VecEmbedding extends Encoder{
     @Override
     public Tensor encode(char input){
         int index=this.lookup.indexOf(input);
-        return EMB.mapVec(index);
+        Tensor indexTensor = new Tensor(new int[]{index}, new int[]{1}, List.of(), "embedding index", DataType.INT32);
+        return EMB.gatherAxis(indexTensor, 0);
 
     }
 
@@ -50,7 +59,8 @@ public class VecEmbedding extends Encoder{
         for (int i=0;i<inputs.length;i++){
             indexes[i]=this.lookup.indexOf(inputs[i]);
         }
-        return EMB.mapVec(indexes);
+        Tensor indexTensor = new Tensor(indexes, new int[]{indexes.length}, List.of(), "embedding indexes", DataType.INT32);
+        return EMB.gatherAxis(indexTensor, 0);
     }
 
     @Override

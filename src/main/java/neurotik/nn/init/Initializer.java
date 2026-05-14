@@ -1,6 +1,6 @@
 package neurotik.nn.init;
 
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
 
 public interface Initializer {
 

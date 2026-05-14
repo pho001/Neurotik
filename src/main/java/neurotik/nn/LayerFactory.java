@@ -2,6 +2,7 @@ package neurotik.nn;
 
 import neurotik.nn.activation.Activation;
 import neurotik.nn.layers.ActivationLayer;
+import neurotik.nn.layers.BatchNormLayer;
 import neurotik.nn.layers.FlattenLayer;
 import neurotik.nn.layers.GRULayer;
 import neurotik.nn.init.Initializer;
@@ -21,6 +22,22 @@ public class LayerFactory {
 
     public static Layer ActivationLayer(Activation activation) {
         return new ActivationLayer(activation);
+    }
+
+    public static Layer BatchNormLayer(int features) {
+        return new BatchNormLayer(features);
+    }
+
+    public static Layer BatchNormLayer(int features, int channelAxis) {
+        return new BatchNormLayer(features, channelAxis);
+    }
+
+    public static Layer BatchNormLayer(int features, int channelAxis, double epsilon) {
+        return new BatchNormLayer(features, channelAxis, epsilon);
+    }
+
+    public static Layer BatchNormLayer(int features, int channelAxis, double epsilon, double momentum) {
+        return new BatchNormLayer(features, channelAxis, epsilon, momentum);
     }
 
     public static Layer OneDirectionalRNN(int inputSize, int hiddenSize,boolean useBias,Initializer init) {

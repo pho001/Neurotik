@@ -17,7 +17,7 @@ import neurotik.nn.optim.Optimizer;
 import neurotik.nn.optim.OptimizerFactory;
 import neurotik.nn.models.RNN;
 import neurotik.data.StringDataSet;
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
 
 import java.util.*;
 import java.util.stream.DoubleStream;

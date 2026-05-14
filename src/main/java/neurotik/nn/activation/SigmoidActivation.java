@@ -1,6 +1,6 @@
 package neurotik.nn.activation;
 
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
 
 public class SigmoidActivation implements Activation{
     @Override

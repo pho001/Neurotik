@@ -1,6 +1,6 @@
 package neurotik.nn.optim;
 
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
 
 public abstract class Optimizer {
     public Optimizer(){

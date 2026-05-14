@@ -1,8 +1,10 @@
 package neurotik.nn.init;
 
-import neurotik.tensor.Tensor;
+import tensor.DataType;
+import tensor.Tensor;
 
-import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
 
 public class UniformInit implements Initializer {
 
@@ -15,9 +17,11 @@ public class UniformInit implements Initializer {
     }
     @Override
     public Tensor init(int input,int output) {
-        Tensor out=new Tensor(input,output,new HashSet<>(),"").randTensor();
-        out= out.muleach(upper-lower).addEach(lower);
-        out.noGradientPassdown();
-        return out;
+        Random random = new Random();
+        double[] data = new double[input * output];
+        for (int i = 0; i < data.length; i++) {
+            data[i] = random.nextGaussian() * (upper - lower) + lower;
+        }
+        return new Tensor(data, new int[]{input, output}, List.of(), "", DataType.FLOAT64).trainableParameter();
     }
 }

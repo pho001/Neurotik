@@ -7,7 +7,7 @@ import neurotik.nn.Layers;
 import neurotik.tensor.MathHelper;
 import neurotik.nn.Model;
 import neurotik.data.NumDataSet;
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,9 +63,11 @@ public class MLP extends Model{
                 for (Layer layer:layers.layers){
                     inputs=layer.forward(inputs);
                 }
-                probs=inputs[0].softMax();
+                probs=inputs[0].softmax(1).compute();
 
-                int iChar=MathHelper.sampleFromMultinomial(1,probs.data[0],random)[0];
+                double[] probabilities = new double[probs.getDimensionAt(1)];
+                System.arraycopy(probs.toDoubleArrayCopy(), 0, probabilities, 0, probabilities.length);
+                int iChar=MathHelper.sampleFromMultinomial(1, probabilities,random)[0];
                 char nextChar=encoder.decode(iChar);
                 output=output+nextChar;
                 if (iChar==0){
@@ -97,10 +99,11 @@ public class MLP extends Model{
             double[] sub=DoubleStream.of(initVals).skip(1).limit(initVals.length-1).toArray();
 
             System.arraycopy(sub, 0, initVals, 0, sub.length);
-            initVals[initVals.length - 1] = inputs[0].data[0][0];
+            inputs[0].compute();
+            initVals[initVals.length - 1] = inputs[0].scalarAsDouble();
             source.clear();
             source.add(initVals);
-            System.out.println(inputs[0].data[0][0]);
+            System.out.println(inputs[0].scalarAsDouble());
         }
     }
 }

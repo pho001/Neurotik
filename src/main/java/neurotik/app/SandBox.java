@@ -1,8 +1,10 @@
 package neurotik.app;
 
-import neurotik.tensor.Tensor;
+import tensor.CompileMode;
+import tensor.DataType;
+import tensor.Tensor;
 
-import java.util.HashSet;
+import java.util.List;
 
 public class SandBox {
     public SandBox(){
@@ -25,21 +27,21 @@ public class SandBox {
         double [][] y=new double[][]{{0.1},{0.5}};
 
 
-        Tensor X0=new Tensor(x0,new HashSet<>(),"x0");
-        Tensor X1=new Tensor(x1,new HashSet<>(),"x1");
-        Tensor X2=new Tensor(x2,new HashSet<>(),"x2");
+        Tensor X0=new Tensor(x0, List.of(), "x0", DataType.FLOAT64);
+        Tensor X1=new Tensor(x1, List.of(), "x1", DataType.FLOAT64);
+        Tensor X2=new Tensor(x2, List.of(), "x2", DataType.FLOAT64);
 
-        Tensor Y0=new Tensor(y0,new HashSet<>(),"y1");
-        Tensor Y1=new Tensor(y1,new HashSet<>(),"y2");
-        Tensor Y2=new Tensor(y2,new HashSet<>(),"y3");
+        Tensor Y0=new Tensor(y0, List.of(), "y1", DataType.FLOAT64);
+        Tensor Y1=new Tensor(y1, List.of(), "y2", DataType.FLOAT64);
+        Tensor Y2=new Tensor(y2, List.of(), "y3", DataType.FLOAT64);
 
-        Tensor Wf=new Tensor(wf,new HashSet<>(),"wf");
-        Tensor Wi=new Tensor(wi,new HashSet<>(),"wi");
-        Tensor Wo=new Tensor(wo,new HashSet<>(),"wo");
-        Tensor Wc=new Tensor(wc,new HashSet<>(),"wc");
+        Tensor Wf=new Tensor(wf, List.of(), "wf", DataType.FLOAT64).trainableParameter();
+        Tensor Wi=new Tensor(wi, List.of(), "wi", DataType.FLOAT64).trainableParameter();
+        Tensor Wo=new Tensor(wo, List.of(), "wo", DataType.FLOAT64).trainableParameter();
+        Tensor Wc=new Tensor(wc, List.of(), "wc", DataType.FLOAT64).trainableParameter();
 
-        Tensor H0=new Tensor(h0,new HashSet<>(),"h0");
-        Tensor C0=new Tensor(ct,new HashSet<>(),"c0");
+        Tensor H0=new Tensor(h0, List.of(), "h0", DataType.FLOAT64);
+        Tensor C0=new Tensor(ct, List.of(), "c0", DataType.FLOAT64);
 
         /*
         Tensor A=new Tensor(wf,new HashSet<>(),"A");
@@ -51,16 +53,16 @@ public class SandBox {
         //L.backward();
 
         //step 0
-        Tensor Z0=X0.concatRight(H0);
-        Tensor forgetGate0=Z0.mul(Wf).sigmoid();
-        Tensor inputGate0=Z0.mul(Wi).sigmoid();
-        Tensor candidateCellState0=Z0.mul(Wc).tanh();
+        Tensor Z0=Tensor.concat(1, X0, H0);
+        Tensor forgetGate0=Z0.matmul(Wf).sigmoid();
+        Tensor inputGate0=Z0.matmul(Wi).sigmoid();
+        Tensor candidateCellState0=Z0.matmul(Wc).tanh();
 
-        Tensor C1=forgetGate0.hadamard(C0).add(inputGate0.hadamard(candidateCellState0));
-        Tensor outputGate=Z0.mul(Wo).sigmoid();
-        Tensor H1=outputGate.hadamard(C1.tanh());
+        Tensor C1=forgetGate0.mul(C0).add(inputGate0.mul(candidateCellState0));
+        Tensor outputGate=Z0.matmul(Wo).sigmoid();
+        Tensor H1=outputGate.mul(C1.tanh());
 
-        Tensor L0=H1.mse(Y0);
+        Tensor L0=H1.sub(Y0).pow(2).mean();
 
 
 
@@ -68,32 +70,32 @@ public class SandBox {
 
         //step 1
 
-        Tensor Z1=X1.concatRight(H1);
-        Tensor forgetGate1=Z1.mul(Wf).sigmoid();
-        Tensor inputGate1=Z1.mul(Wi).sigmoid();
-        Tensor candidateCellState1=Z1.mul(Wc).tanh();
+        Tensor Z1=Tensor.concat(1, X1, H1);
+        Tensor forgetGate1=Z1.matmul(Wf).sigmoid();
+        Tensor inputGate1=Z1.matmul(Wi).sigmoid();
+        Tensor candidateCellState1=Z1.matmul(Wc).tanh();
 
-        Tensor C2=forgetGate1.hadamard(C1).add(inputGate1.hadamard(candidateCellState1));
-        Tensor outputGate1=Z1.mul(Wo).sigmoid();
-        Tensor H2=outputGate1.hadamard(C2.tanh());
+        Tensor C2=forgetGate1.mul(C1).add(inputGate1.mul(candidateCellState1));
+        Tensor outputGate1=Z1.matmul(Wo).sigmoid();
+        Tensor H2=outputGate1.mul(C2.tanh());
 
-        Tensor L1=H2.mse(Y1);
+        Tensor L1=H2.sub(Y1).pow(2).mean();
 
 
 
         //step 2
-        Tensor Z2=X2.concatRight(H2);
-        Tensor forgetGate2=Z2.mul(Wf).sigmoid();
-        Tensor inputGate2=Z2.mul(Wi).sigmoid();
-        Tensor candidateCellState2=Z2.mul(Wc).tanh();
+        Tensor Z2=Tensor.concat(1, X2, H2);
+        Tensor forgetGate2=Z2.matmul(Wf).sigmoid();
+        Tensor inputGate2=Z2.matmul(Wi).sigmoid();
+        Tensor candidateCellState2=Z2.matmul(Wc).tanh();
 
-        Tensor C3=forgetGate2.hadamard(C2).add(inputGate2.hadamard(candidateCellState2));
-        Tensor outputGate2=Z2.mul(Wo).sigmoid();
-        Tensor H3=outputGate2.hadamard(C3.tanh());
+        Tensor C3=forgetGate2.mul(C2).add(inputGate2.mul(candidateCellState2));
+        Tensor outputGate2=Z2.matmul(Wo).sigmoid();
+        Tensor H3=outputGate2.mul(C3.tanh());
 
-        Tensor L2=H3.mse(Y2);
+        Tensor L2=H3.sub(Y2).pow(2).mean();
         Tensor Loss=L0.add(L1.add(L2));
-        Loss.backward();
+        Loss.compute(CompileMode.TRAINING);
 
 
 

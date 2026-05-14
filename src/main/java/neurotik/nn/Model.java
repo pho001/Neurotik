@@ -5,10 +5,14 @@ import neurotik.encoding.Encoder;
 import neurotik.encoding.EncoderFactory;
 import neurotik.nn.init.Initializer;
 import neurotik.nn.optim.Optimizer;
-import neurotik.tensor.Tensor;
+import tensor.CompileMode;
+import tensor.DataType;
+import tensor.Tensor;
+import tensor.TensorInternalAccess;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.OptionalDouble;
 import java.util.stream.IntStream;
 
@@ -108,16 +112,16 @@ public abstract class Model {
                 }
 
 
-                //gradient reset
-                Loss.resetGradients();
-                //backward pass
-                Loss.backward();
+                for (Tensor parameter : parameters()) {
+                    TensorInternalAccess.clearGradient(parameter);
+                }
+                Loss.compute(CompileMode.TRAINING);
                 updateParameters(optimizer, i);
 
 
                 long endTime = System.nanoTime();
                 durationInMillis += (endTime-startTime) / 1e6;
-                cumLoss+=Loss.data[0][0]/ Losses.length;
+                cumLoss+=Loss.scalarAsDouble()/ Losses.length;
 
 
                 if (j%lines==0 && j>0) {
@@ -165,15 +169,17 @@ public abstract class Model {
             if (isTextBased) {
                 int [] stepLengths=batch.getPackedBatchesSizes();
 
-                Losses[context] = inputs[context].categoricalEntropyLoss(targets[context].mapVec(IntStream.range(0, stepLengths[context]).toArray()));
+                int[] indexes = IntStream.range(0, stepLengths[context]).toArray();
+                Tensor indexTensor = new Tensor(indexes, new int[]{indexes.length}, List.of(), "target indexes", DataType.INT32);
+                Losses[context] = inputs[context].crossEntropyLoss(targets[context].gatherAxis(indexTensor, 0), 1);
 
             }
             else {
-                Losses[context] = inputs[context].mse(targets[context]);
+                Losses[context] = inputs[context].sub(targets[context]).pow(2).mean();
             }
 
 
-            Losses[context].label="Loss "+context;
+            Losses[context].setLabel("Loss "+context);
 
 
         }
@@ -194,7 +200,8 @@ public abstract class Model {
                     Loss = Loss.add(Losses[l]);
                 }
             }
-            cumLoss[j]=Loss.data[0][0];
+            Loss.compute();
+            cumLoss[j]=Loss.scalarAsDouble();
         }
         OptionalDouble avg=Arrays.stream(cumLoss).average();
         if (avg.isPresent())
@@ -244,7 +251,11 @@ public abstract class Model {
         int paramsCount=0;
         HashSet<Tensor> parameters = parameters();
         for (Tensor p:parameters){
-            paramsCount+=p.rows*p.cols;
+            int tensorParams = 1;
+            for (int dimension : p.getShape()) {
+                tensorParams *= dimension;
+            }
+            paramsCount += tensorParams;
         }
         return paramsCount;
     }

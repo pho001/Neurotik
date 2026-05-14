@@ -1,7 +1,7 @@
 package neurotik.nn;
 
 import neurotik.nn.init.Initializer;
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
 
 import java.util.*;
 

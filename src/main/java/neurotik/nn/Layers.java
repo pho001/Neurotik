@@ -2,12 +2,13 @@ package neurotik.nn;
 
 import neurotik.nn.activation.Activation;
 import neurotik.nn.layers.ActivationLayer;
+import neurotik.nn.layers.BatchNormLayer;
 import neurotik.nn.layers.FlattenLayer;
 import neurotik.nn.layers.GRULayer;
 import neurotik.nn.init.Initializer;
 import neurotik.nn.layers.LinearLayer;
 import neurotik.nn.layers.LstmLayer;
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -31,6 +32,26 @@ public class Layers {
 
     public Layers addActivation(Activation activation){
         layers.add(LayerFactory.ActivationLayer(activation));
+        return this;
+    }
+
+    public Layers addBatchNorm(int features){
+        layers.add(LayerFactory.BatchNormLayer(features));
+        return this;
+    }
+
+    public Layers addBatchNorm(int features, int channelAxis){
+        layers.add(LayerFactory.BatchNormLayer(features, channelAxis));
+        return this;
+    }
+
+    public Layers addBatchNorm(int features, int channelAxis, double epsilon){
+        layers.add(LayerFactory.BatchNormLayer(features, channelAxis, epsilon));
+        return this;
+    }
+
+    public Layers addBatchNorm(int features, int channelAxis, double epsilon, double momentum){
+        layers.add(LayerFactory.BatchNormLayer(features, channelAxis, epsilon, momentum));
         return this;
     }
 

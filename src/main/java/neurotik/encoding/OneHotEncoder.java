@@ -1,6 +1,7 @@
 package neurotik.encoding;
 
-import neurotik.tensor.Tensor;
+import tensor.DataType;
+import tensor.Tensor;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -28,7 +29,7 @@ public class OneHotEncoder extends Encoder{
     public Tensor encode(char input) {
         double [][] oneHot=new double [1][lookup.size()];
         oneHot[0][this.lookup.indexOf(input)]=1;
-        Tensor out=new Tensor(oneHot,new HashSet<>(),"oneHot");
+        Tensor out= new Tensor(oneHot, List.of(), "oneHot", DataType.FLOAT64);
         return out;
     }
 
@@ -56,7 +57,7 @@ public class OneHotEncoder extends Encoder{
         for (int i=0;i<inputs.length;i++){
            enc[i][this.lookup.indexOf(inputs[i])]=1;
         }
-        Tensor out=new Tensor(enc,new HashSet<>(),"");
+        Tensor out= new Tensor(enc, List.of(), "", DataType.FLOAT64);
         return out;
     }
 

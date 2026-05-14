@@ -3,7 +3,7 @@ package neurotik.nn.layers;
 import neurotik.nn.activation.Activation;
 import neurotik.nn.init.Initializer;
 import neurotik.nn.Layer;
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
 
 import java.util.HashSet;
 

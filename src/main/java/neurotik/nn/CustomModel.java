@@ -4,7 +4,7 @@ import neurotik.data.DataLoader;
 import neurotik.encoding.Encoder;
 import neurotik.nn.init.Initializer;
 import neurotik.nn.optim.Optimizer;
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
 
 import java.util.HashSet;
 

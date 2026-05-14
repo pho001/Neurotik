@@ -1,6 +1,10 @@
 package neurotik.nn.optim;
 
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
+import tensor.TensorInternalAccess;
+
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 public class AdamOptimizer extends Optimizer{
     // Parametry algoritmu Adam
@@ -8,6 +12,8 @@ public class AdamOptimizer extends Optimizer{
     private double beta2;
     private double learningRate;
     private double epsilon;
+    private final Map<Tensor, double[]> means = new IdentityHashMap<>();
+    private final Map<Tensor, double[]> variances = new IdentityHashMap<>();
 
 
     // Časový krok
@@ -21,30 +27,26 @@ public class AdamOptimizer extends Optimizer{
 
     @Override
     public void update(Tensor parameter,int timeStep) {
-
-        int rows= parameter.rows;
-        int cols= parameter.cols;
-
-
-        //let's initalize means and weights
-        if (parameter.means==null){
-            parameter.means=new double [rows][cols];
-            parameter.variances=new double [rows][cols];
+        Tensor gradient = parameter.getGradient();
+        if (gradient == null) {
+            return;
         }
 
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                parameter.means[i][j] = beta1 * parameter.means[i][j] + (1 - beta1) * parameter.gradients[i][j];
-                parameter.variances[i][j] = beta2 * parameter.variances[i][j] + (1 - beta2) * Math.pow(parameter.gradients[i][j], 2);
+        double[] data = parameter.toDoubleArrayCopy();
+        double[] grad = gradient.toDoubleArrayCopy();
+        double[] mean = means.computeIfAbsent(parameter, ignored -> new double[data.length]);
+        double[] variance = variances.computeIfAbsent(parameter, ignored -> new double[data.length]);
 
-                //correction
-                double mHat = parameter.means[i][j] / (1 - Math.pow(beta1, timeStep));         //timeStep can't start at 0, denominator would be 0
-                double vHat = parameter.variances[i][j] / (1 - Math.pow(beta2, timeStep));
+        for (int i = 0; i < data.length; i++) {
+            mean[i] = beta1 * mean[i] + (1 - beta1) * grad[i];
+            variance[i] = beta2 * variance[i] + (1 - beta2) * Math.pow(grad[i], 2);
 
-                // Update parameters
-                parameter.data[i][j] -= learningRate * mHat / (Math.sqrt(vHat) + epsilon);
+            double mHat = mean[i] / (1 - Math.pow(beta1, timeStep));
+            double vHat = variance[i] / (1 - Math.pow(beta2, timeStep));
 
-            }
+            data[i] -= learningRate * mHat / (Math.sqrt(vHat) + epsilon);
         }
+        parameter.setData(data);
+        TensorInternalAccess.clearGradient(parameter);
     }
 }

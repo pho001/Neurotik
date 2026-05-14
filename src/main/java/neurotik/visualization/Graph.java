@@ -1,6 +1,6 @@
 package neurotik.visualization;
 
-import neurotik.tensor.Tensor;
+import tensor.Tensor;
 
 import com.mxgraph.layout.hierarchical.mxHierarchicalLayout;
 import com.mxgraph.swing.mxGraphComponent;
@@ -123,33 +123,36 @@ public class Graph {
     private static void addNodes(Tensor node, mxGraph graph, Object parent, Map<String, Object> vertexMap) {
         Object vertex;
         Object vertex2;
-        if (!vertexMap.containsKey(node.getId())) {
-            if (node.getPrev().isEmpty()){
-                vertex = graph.insertVertex(parent, node.getId(), node.getLabel(), 0, 0, 40, 40);
+        String nodeId = Integer.toString(System.identityHashCode(node));
+        if (!vertexMap.containsKey(nodeId)) {
+            if (node.getPrevTensors().isEmpty()){
+                vertex = graph.insertVertex(parent, nodeId, node.getLabel(), 0, 0, 40, 40);
                 graph.getModel().setStyle(vertex,"inputsStyle");
-                vertex2 = graph.insertVertex(parent, node.getId()+1, "Label: \nGrad: ", 0, 0, 75, 40);
+                vertex2 = graph.insertVertex(parent, nodeId + "additionalLabel", "Label: \nGrad: ", 0, 0, 75, 40);
                 graph.getModel().setStyle(vertex2,"valStyle");
             }
             else {
-                vertex = graph.insertVertex(parent, node.getId(), node.getOperator(), 0, 0, 40, 40);
+                String operation = node.getOperation() == null ? node.getLabel() : node.getOperation().getClass().getSimpleName();
+                vertex = graph.insertVertex(parent, nodeId, operation, 0, 0, 40, 40);
                 graph.getModel().setStyle(vertex,"vertexStyle");
-                vertex2 = graph.insertVertex(parent, node.getId()+1, "Label: \nGrad: ", 0, 0, 75, 40);
+                vertex2 = graph.insertVertex(parent, nodeId + "additionalLabel", "Label: \nGrad: ", 0, 0, 75, 40);
                 graph.getModel().setStyle(vertex2,"valStyle");
             }
             graph.insertEdge(parent, null, "", vertex, vertex2, "edgeStyle");
 
-            vertexMap.put(node.getId(), vertex);
-            vertexMap.put(node.getId()+"additional", vertex2);
+            vertexMap.put(nodeId, vertex);
+            vertexMap.put(nodeId+"additional", vertex2);
 
-            for (Tensor prev : node.getPrev()) {
+            for (Tensor prev : node.getPrevTensors()) {
                 addNodes(prev, graph, parent, vertexMap);
                 Object edge;
+                String prevId = Integer.toString(System.identityHashCode(prev));
 
                 if (node==lastNode){
-                    edge=graph.insertEdge(parent, null, null, vertexMap.get(prev.getId()+"additional"), vertex);
+                    edge=graph.insertEdge(parent, null, null, vertexMap.get(prevId+"additional"), vertex);
                 }
                 else{
-                    edge=graph.insertEdge(parent, null,null, vertexMap.get(prev.getId()+"additional"), vertex);
+                    edge=graph.insertEdge(parent, null,null, vertexMap.get(prevId+"additional"), vertex);
 
                 }
 

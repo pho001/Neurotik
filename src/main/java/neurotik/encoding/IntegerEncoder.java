@@ -1,6 +1,7 @@
 package neurotik.encoding;
 
-import neurotik.tensor.Tensor;
+import tensor.DataType;
+import tensor.Tensor;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -31,7 +32,7 @@ public class IntegerEncoder extends Encoder{
     public Tensor encode(char input) {
         double[][] intEnc=new double [1][1];
         intEnc[0][0]=lookup.indexOf(input);
-        Tensor out=new Tensor (intEnc,new HashSet<>(),"intEnc");
+        Tensor out= new Tensor(intEnc, List.of(), "intEnc", DataType.FLOAT64);
         return out;
     }
 
@@ -62,7 +63,7 @@ public class IntegerEncoder extends Encoder{
             if (enc==null)
                 enc=encode((char)c);
             else
-                enc=enc.join(encode(c), Tensor.Join.RIGHT);
+                enc=Tensor.concat(1, enc, encode(c));
         }
 
         return enc;
